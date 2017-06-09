@@ -166,6 +166,14 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
   public static final long TIMESTAMP_DELAY_INTERVAL_MS_DEFAULT = 0;
   private static final String TIMESTAMP_DELAY_INTERVAL_MS_DISPLAY = "Delay Interval (ms)";
 
+  public static final String SQL_SERVER_ROWVERSION_TIMESTAMP_CONFIG = "sql.server.rowversion.timestamp";
+  public static final String SQL_SERVER_ROWVERSION_TIMESTAMP_DOC =
+          "If sql server is using timestamp or rowversion as the updatetime column then we need to use this since "
+          + "these are not real timestamp columns. We will need to bypass timestamp and convert this binary field to "
+          + "an integer for global database ordering";
+  public static final boolean SQL_SERVER_ROWVERSION_TIMESTAMP_DEFAULT = true;
+  public static final String SQL_SERVER_ROWVERSION_TIMESTAMP_DISPLAY = "sql.server.rowversion.timestamp";
+
   public static final String DATABASE_GROUP = "Database";
   public static final String MODE_GROUP = "Mode";
   public static final String CONNECTOR_GROUP = "Connector";
@@ -216,7 +224,8 @@ public class JdbcSourceConnectorConfig extends AbstractConfig {
         .define(BATCH_MAX_ROWS_CONFIG, Type.INT, BATCH_MAX_ROWS_DEFAULT, Importance.LOW, BATCH_MAX_ROWS_DOC, CONNECTOR_GROUP, 2, Width.SHORT, BATCH_MAX_ROWS_DISPLAY)
         .define(TABLE_POLL_INTERVAL_MS_CONFIG, Type.LONG, TABLE_POLL_INTERVAL_MS_DEFAULT, Importance.LOW, TABLE_POLL_INTERVAL_MS_DOC, CONNECTOR_GROUP, 3, Width.SHORT, TABLE_POLL_INTERVAL_MS_DISPLAY)
         .define(TOPIC_PREFIX_CONFIG, Type.STRING, Importance.HIGH, TOPIC_PREFIX_DOC, CONNECTOR_GROUP, 4, Width.MEDIUM, TOPIC_PREFIX_DISPLAY)
-        .define(TIMESTAMP_DELAY_INTERVAL_MS_CONFIG, Type.LONG, TIMESTAMP_DELAY_INTERVAL_MS_DEFAULT, Importance.HIGH, TIMESTAMP_DELAY_INTERVAL_MS_DOC, CONNECTOR_GROUP, 5, Width.MEDIUM, TIMESTAMP_DELAY_INTERVAL_MS_DISPLAY);
+        .define(TIMESTAMP_DELAY_INTERVAL_MS_CONFIG, Type.LONG, TIMESTAMP_DELAY_INTERVAL_MS_DEFAULT, Importance.HIGH, TIMESTAMP_DELAY_INTERVAL_MS_DOC, CONNECTOR_GROUP, 5, Width.MEDIUM, TIMESTAMP_DELAY_INTERVAL_MS_DISPLAY)
+        .define(SQL_SERVER_ROWVERSION_TIMESTAMP_CONFIG, Type.BOOLEAN, SQL_SERVER_ROWVERSION_TIMESTAMP_DEFAULT, Importance.MEDIUM, SQL_SERVER_ROWVERSION_TIMESTAMP_DOC, DATABASE_GROUP, 7, Width.SHORT, SQL_SERVER_ROWVERSION_TIMESTAMP_DISPLAY);
   }
 
   public static final ConfigDef CONFIG_DEF = baseConfigDef();

@@ -26,6 +26,8 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -70,7 +72,15 @@ public class TimestampIncrementingTableQuerierTest {
   }
 
   private TimestampIncrementingTableQuerier newQuerier() {
-    return new TimestampIncrementingTableQuerier(TableQuerier.QueryMode.TABLE, null, "", null, "id", Collections.<String, Object>emptyMap(), 0L, null, false);
+    return new TimestampIncrementingTableQuerier(TableQuerier.QueryMode.TABLE, null, "", null, "id", Collections.<String, Object>emptyMap(), 0L, null, false, jdbcSourceTaskConfig());
   }
 
+  private JdbcSourceTaskConfig jdbcSourceTaskConfig() {
+    Map<String, String> props = new HashMap<>();
+    props.put(JdbcSourceConnectorConfig.CONNECTION_URL_CONFIG, "jdbc:postgresql://localhost/test");
+    props.put(JdbcSourceConnectorConfig.TOPIC_PREFIX_CONFIG, "test-");
+    props.put(JdbcSourceTaskConfig.TABLES_CONFIG, "test");
+    props.put(JdbcSourceConnectorConfig.MODE_CONFIG, JdbcSourceConnectorConfig.MODE_TIMESTAMP_INCREMENTING);
+    return new JdbcSourceTaskConfig(props);
+  }
 }

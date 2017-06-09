@@ -19,10 +19,7 @@ package io.confluent.connect.jdbc.source;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 /**
  * TableQuerier executes queries against a specific table. Implementations handle different types
@@ -48,6 +45,9 @@ abstract class TableQuerier implements Comparable<TableQuerier> {
   protected PreparedStatement stmt;
   protected ResultSet resultSet;
   protected Schema schema;
+
+  protected String dbProduct;
+  protected ResultSetMetaData resultSetMetaData;
 
   public TableQuerier(QueryMode mode, String nameOrQuery, String topicPrefix,
                       String schemaPattern, boolean mapNumerics) {
@@ -80,9 +80,11 @@ abstract class TableQuerier implements Comparable<TableQuerier> {
 
   public void maybeStartQuery(Connection db) throws SQLException {
     if (resultSet == null) {
+      dbProduct = db.getMetaData().getDatabaseProductName();
       stmt = getOrCreatePreparedStatement(db);
       resultSet = executeQuery();
-      schema = DataConverter.convertSchema(name, resultSet.getMetaData(), mapNumerics);
+      resultSetMetaData = resultSet.getMetaData();
+      schema = DataConverter.convertSchema(name, resultSetMetaData, mapNumerics, dbProduct);
     }
   }
 

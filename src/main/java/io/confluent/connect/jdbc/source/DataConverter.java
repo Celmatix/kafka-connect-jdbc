@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URL;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -45,24 +46,24 @@ import io.confluent.connect.jdbc.util.DateTimeUtils;
 public class DataConverter {
   private static final Logger log = LoggerFactory.getLogger(JdbcSourceTask.class);
 
-  public static Schema convertSchema(String tableName, ResultSetMetaData metadata, boolean mapNumerics)
+  public static Schema convertSchema(String tableName, ResultSetMetaData metadata, boolean mapNumerics, String dbProduct)
       throws SQLException {
     // TODO: Detect changes to metadata, which will require schema updates
     SchemaBuilder builder = SchemaBuilder.struct().name(tableName);
     for (int col = 1; col <= metadata.getColumnCount(); col++) {
-      addFieldSchema(metadata, col, builder, mapNumerics);
+      addFieldSchema(metadata, col, builder, mapNumerics, dbProduct);
     }
     return builder.build();
   }
 
-  public static Struct convertRecord(Schema schema, ResultSet resultSet, boolean mapNumerics)
+  public static Struct convertRecord(Schema schema, ResultSet resultSet, boolean mapNumerics, String dbProduct, ResultSetMetaData resultSetMetaData)
       throws SQLException {
     ResultSetMetaData metadata = resultSet.getMetaData();
     Struct struct = new Struct(schema);
     for (int col = 1; col <= metadata.getColumnCount(); col++) {
       try {
         convertFieldValue(resultSet, col, metadata.getColumnType(col), struct,
-                          metadata.getColumnLabel(col), mapNumerics);
+                          metadata.getColumnLabel(col), mapNumerics, dbProduct, resultSetMetaData);
       } catch (IOException e) {
         log.warn("Ignoring record because processing failed:", e);
       } catch (SQLException e) {
@@ -74,7 +75,7 @@ public class DataConverter {
 
 
   private static void addFieldSchema(ResultSetMetaData metadata, int col,
-                                     SchemaBuilder builder, boolean mapNumerics)
+                                     SchemaBuilder builder, boolean mapNumerics, String dbProduct)
       throws SQLException {
     // Label is what the query requested the column name be using an "AS" clause, name is the
     // original
@@ -83,6 +84,7 @@ public class DataConverter {
     String fieldName = label != null && !label.isEmpty() ? label : name;
 
     int sqlType = metadata.getColumnType(col);
+    String columnTypeName = metadata.getColumnTypeName(col);
     boolean optional = false;
     if (metadata.isNullable(col) == ResultSetMetaData.columnNullable ||
         metadata.isNullable(col) == ResultSetMetaData.columnNullableUnknown) {
@@ -261,9 +263,17 @@ public class DataConverter {
       case Types.VARBINARY:
       case Types.LONGVARBINARY: {
         if (optional) {
-          builder.field(fieldName, Schema.OPTIONAL_BYTES_SCHEMA);
+          if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+            builder.field(fieldName, Schema.OPTIONAL_INT64_SCHEMA);
+          } else {
+            builder.field(fieldName, Schema.OPTIONAL_BYTES_SCHEMA);
+          }
         } else {
-          builder.field(fieldName, Schema.BYTES_SCHEMA);
+            if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+                builder.field(fieldName, Schema.INT64_SCHEMA);
+            } else {
+                builder.field(fieldName, Schema.BYTES_SCHEMA);
+            }
         }
         break;
       }
@@ -312,10 +322,18 @@ public class DataConverter {
     }
   }
 
-  private static void convertFieldValue(ResultSet resultSet, int col, int colType,
-                                        Struct struct, String fieldName, boolean mapNumerics)
-      throws SQLException, IOException {
+  private static void convertFieldValue(ResultSet resultSet,
+                                        int col, int colType,
+                                        Struct struct,
+                                        String fieldName,
+                                        boolean mapNumerics,
+                                        String dbProduct,
+                                        ResultSetMetaData resultSetMetaData
+  ) throws SQLException, IOException {
+
     final Object colValue;
+    // todo we can cache this to optimize if there is a performance issue but I doubt it matters much at our current scale
+    final String columnTypeName = resultSetMetaData.getColumnTypeName(col);
     switch (colType) {
       case Types.NULL: {
         colValue = null;
@@ -431,7 +449,11 @@ public class DataConverter {
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY: {
-        colValue = resultSet.getBytes(col);
+        if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+          colValue = new BigInteger(resultSet.getBytes(col)).longValue();
+        } else {
+            colValue = resultSet.getBytes(col);
+        }
         break;
       }
 

@@ -16,6 +16,8 @@
 
 package io.confluent.connect.jdbc.source;
 
+import io.confluent.connect.jdbc.source.dialect.DbDialectTimestampIncrementingOffset;
+import io.confluent.connect.jdbc.source.dialect.GenericTimestampIncrementingOffset;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -242,7 +244,7 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
 
   @Test
   public void testManualIncrementingRestoreOffset() throws Exception {
-    TimestampIncrementingOffset offset = new TimestampIncrementingOffset(null, 1L);
+    GenericTimestampIncrementingOffset offset = new GenericTimestampIncrementingOffset(null, 1L);
     expectInitialize(Arrays.asList(SINGLE_TABLE_PARTITION),
             Collections.singletonMap(SINGLE_TABLE_PARTITION, offset.toMap()));
 
@@ -264,7 +266,7 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
 
   @Test
   public void testAutoincrementRestoreOffset() throws Exception {
-    TimestampIncrementingOffset offset = new TimestampIncrementingOffset(null, 1L);
+    GenericTimestampIncrementingOffset offset = new GenericTimestampIncrementingOffset(null, 1L);
     expectInitialize(Arrays.asList(SINGLE_TABLE_PARTITION),
             Collections.singletonMap(SINGLE_TABLE_PARTITION, offset.toMap()));
 
@@ -289,7 +291,7 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
 
   @Test
   public void testTimestampRestoreOffset() throws Exception {
-    TimestampIncrementingOffset offset = new TimestampIncrementingOffset(new Timestamp(10L), null);
+    GenericTimestampIncrementingOffset offset = new GenericTimestampIncrementingOffset(new Timestamp(10L), null);
     expectInitialize(Arrays.asList(SINGLE_TABLE_PARTITION),
             Collections.singletonMap(SINGLE_TABLE_PARTITION, offset.toMap()));
 
@@ -314,7 +316,7 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
 
   @Test
   public void testTimestampAndIncrementingRestoreOffset() throws Exception {
-    TimestampIncrementingOffset offset = new TimestampIncrementingOffset(new Timestamp(10L), 3L);
+    GenericTimestampIncrementingOffset offset = new GenericTimestampIncrementingOffset(new Timestamp(10L), 3L);
     expectInitialize(Arrays.asList(SINGLE_TABLE_PARTITION),
             Collections.singletonMap(SINGLE_TABLE_PARTITION, offset.toMap()));
 
@@ -515,13 +517,13 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
           break;
         }
         case INCREMENTING_OFFSET: {
-          TimestampIncrementingOffset offset = TimestampIncrementingOffset.fromMap(record.sourceOffset());
+          DbDialectTimestampIncrementingOffset offset = GenericTimestampIncrementingOffset.fromMap(record.sourceOffset());
           extracted = (T) (Long) offset.getIncrementingOffset();
           break;
         }
         case TIMESTAMP_OFFSET: {
-          TimestampIncrementingOffset offset = TimestampIncrementingOffset.fromMap(record.sourceOffset());
-          Timestamp rawTimestamp = offset.getTimestampOffset();
+            DbDialectTimestampIncrementingOffset offset = GenericTimestampIncrementingOffset.fromMap(record.sourceOffset());
+          Timestamp rawTimestamp = (Timestamp) offset.getTimestampOffset();
           extracted = (T) (Long) rawTimestamp.getTime();
           break;
         }
@@ -554,7 +556,7 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
       Object incrementing = ((Struct)record.value()).get("id");
       long incrementingValue = incrementing instanceof Integer ? (long)(Integer)incrementing
                                                            : (Long)incrementing;
-      long offsetValue = TimestampIncrementingOffset.fromMap(record.sourceOffset()).getIncrementingOffset();
+      long offsetValue = GenericTimestampIncrementingOffset.fromMap(record.sourceOffset()).getIncrementingOffset();
       assertEquals(incrementingValue, offsetValue);
     }
   }
@@ -563,7 +565,7 @@ public class JdbcSourceTaskUpdateTest extends JdbcSourceTaskTestBase {
     // Should use timestamps as offsets
     for(SourceRecord record : records) {
       Timestamp timestampValue = (Timestamp) ((Struct)record.value()).get("modified");
-      Timestamp offsetValue = TimestampIncrementingOffset.fromMap(record.sourceOffset()).getTimestampOffset();
+      Timestamp offsetValue = (Timestamp) GenericTimestampIncrementingOffset.fromMap(record.sourceOffset()).getTimestampOffset();
       assertEquals(timestampValue, offsetValue);
     }
   }
