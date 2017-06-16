@@ -40,193 +40,193 @@ import java.util.Set;
  */
 public class JdbcUtils {
 
-    private static final Logger log = LoggerFactory.getLogger(JdbcUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(JdbcUtils.class);
 
-    /**
-     * The default table types to include when listing tables if none are specified. Valid values
-     * are those specified by the @{java.sql.DatabaseMetaData#getTables} method's TABLE_TYPE column.
-     * The default only includes standard, user-defined tables.
-     */
-    public static final Set<String> DEFAULT_TABLE_TYPES = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("TABLE"))
-    );
+  /**
+   * The default table types to include when listing tables if none are specified. Valid values
+   * are those specified by the @{java.sql.DatabaseMetaData#getTables} method's TABLE_TYPE column.
+   * The default only includes standard, user-defined tables.
+   */
+  public static final Set<String> DEFAULT_TABLE_TYPES = Collections.unmodifiableSet(
+      new HashSet<>(Arrays.asList("TABLE"))
+  );
 
-    private static final int GET_TABLES_TYPE_COLUMN = 4;
-    private static final int GET_TABLES_NAME_COLUMN = 3;
+  private static final int GET_TABLES_TYPE_COLUMN = 4;
+  private static final int GET_TABLES_NAME_COLUMN = 3;
 
-    private static final int GET_COLUMNS_COLUMN_NAME = 4;
-    private static final int GET_COLUMNS_IS_NULLABLE = 18;
-    private static final int GET_COLUMNS_IS_AUTOINCREMENT = 23;
+  private static final int GET_COLUMNS_COLUMN_NAME = 4;
+  private static final int GET_COLUMNS_IS_NULLABLE = 18;
+  private static final int GET_COLUMNS_IS_AUTOINCREMENT = 23;
 
 
-    /**
-     * Get a list of tables in the database. This uses the default filters, which only include
-     * user-defined tables.
-     *
-     * @param conn database connection
-     * @return a list of tables
-     * @throws SQLException
-     */
-    public static List<String> getTables(Connection conn, String schemaPattern) throws SQLException {
-        return getTables(conn, schemaPattern, DEFAULT_TABLE_TYPES);
-    }
+  /**
+   * Get a list of tables in the database. This uses the default filters, which only include
+   * user-defined tables.
+   *
+   * @param conn database connection
+   * @return a list of tables
+   * @throws SQLException
+   */
+  public static List<String> getTables(Connection conn, String schemaPattern) throws SQLException {
+    return getTables(conn, schemaPattern, DEFAULT_TABLE_TYPES);
+  }
 
-    /**
-     * Get a list of table names in the database.
-     *
-     * @param conn  database connection
-     * @param types a set of table types that should be included in the results
-     * @throws SQLException
-     */
-    public static List<String> getTables(Connection conn, String schemaPattern, Set<String> types) throws SQLException {
-        DatabaseMetaData metadata = conn.getMetaData();
-        try (ResultSet rs = metadata.getTables(null, schemaPattern, "%", null)) {
-            List<String> tableNames = new ArrayList<>();
-            while (rs.next()) {
-                if (types.contains(rs.getString(GET_TABLES_TYPE_COLUMN))) {
-                    String colName = rs.getString(GET_TABLES_NAME_COLUMN);
-                    // SQLite JDBC driver does not correctly mark these as system tables
-                    if (metadata.getDatabaseProductName().equals("SQLite") && colName.startsWith("sqlite_")) {
-                        continue;
-                    }
+  /**
+   * Get a list of table names in the database.
+   *
+   * @param conn  database connection
+   * @param types a set of table types that should be included in the results
+   * @throws SQLException
+   */
+  public static List<String> getTables(Connection conn, String schemaPattern, Set<String> types) throws SQLException {
+    DatabaseMetaData metadata = conn.getMetaData();
+    try (ResultSet rs = metadata.getTables(null, schemaPattern, "%", null)) {
+      List<String> tableNames = new ArrayList<>();
+      while (rs.next()) {
+        if (types.contains(rs.getString(GET_TABLES_TYPE_COLUMN))) {
+          String colName = rs.getString(GET_TABLES_NAME_COLUMN);
+          // SQLite JDBC driver does not correctly mark these as system tables
+          if (metadata.getDatabaseProductName().equals("SQLite") && colName.startsWith("sqlite_")) {
+            continue;
+          }
 
-                    tableNames.add(colName);
-                }
-            }
-            return tableNames;
+          tableNames.add(colName);
         }
+      }
+      return tableNames;
     }
+  }
 
-    /**
-     * Look up the autoincrement column for the specified table.
-     *
-     * @param conn  database connection
-     * @param table the table to
-     * @return the name of the column that is an autoincrement column, or null if there is no
-     * autoincrement column or more than one exists
-     * @throws SQLException
-     */
-    public static String getAutoincrementColumn(Connection conn, String schemaPattern, String table) throws SQLException {
-        String result = null;
-        int matches = 0;
+  /**
+   * Look up the autoincrement column for the specified table.
+   *
+   * @param conn  database connection
+   * @param table the table to
+   * @return the name of the column that is an autoincrement column, or null if there is no
+   * autoincrement column or more than one exists
+   * @throws SQLException
+   */
+  public static String getAutoincrementColumn(Connection conn, String schemaPattern, String table) throws SQLException {
+    String result = null;
+    int matches = 0;
 
-        try (ResultSet rs = conn.getMetaData().getColumns(null, schemaPattern, table, "%")) {
-            // Some database drivers (SQLite) don't include all the columns
-            if (rs.getMetaData().getColumnCount() >= GET_COLUMNS_IS_AUTOINCREMENT) {
-                while (rs.next()) {
-                    if (rs.getString(GET_COLUMNS_IS_AUTOINCREMENT).equals("YES")) {
-                        result = rs.getString(GET_COLUMNS_COLUMN_NAME);
-                        matches++;
-                    }
-                }
-                return (matches == 1 ? result : null);
-            }
-        }
-
-        // Fallback approach is to query for a single row. This unfortunately does not work with any
-        // empty table
-        log.trace("Falling back to SELECT detection of auto-increment column for {}:{}", conn, table);
-        try (Statement stmt = conn.createStatement()) {
-            String quoteString = getIdentifierQuoteString(conn);
-            ResultSet rs = stmt.executeQuery("SELECT * FROM " + quoteString + table + quoteString + " LIMIT 1");
-            ResultSetMetaData rsmd = rs.getMetaData();
-            for (int i = 1; i < rsmd.getColumnCount(); i++) {
-                if (rsmd.isAutoIncrement(i)) {
-                    result = rsmd.getColumnName(i);
-                    matches++;
-                }
-            }
+    try (ResultSet rs = conn.getMetaData().getColumns(null, schemaPattern, table, "%")) {
+      // Some database drivers (SQLite) don't include all the columns
+      if (rs.getMetaData().getColumnCount() >= GET_COLUMNS_IS_AUTOINCREMENT) {
+        while (rs.next()) {
+          if (rs.getString(GET_COLUMNS_IS_AUTOINCREMENT).equals("YES")) {
+            result = rs.getString(GET_COLUMNS_COLUMN_NAME);
+            matches++;
+          }
         }
         return (matches == 1 ? result : null);
+      }
     }
 
-    public static boolean isColumnNullable(Connection conn, String schemaPattern, String table, String column)
-            throws SQLException {
-        try (ResultSet rs = conn.getMetaData().getColumns(null, schemaPattern, table, column)) {
-            if (rs.getMetaData().getColumnCount() > GET_COLUMNS_IS_NULLABLE) {
-                // Should only be one match
-                if (!rs.next()) {
-                    return false;
-                }
-                return rs.getString(GET_COLUMNS_IS_NULLABLE).equals("YES");
-            }
+    // Fallback approach is to query for a single row. This unfortunately does not work with any
+    // empty table
+    log.trace("Falling back to SELECT detection of auto-increment column for {}:{}", conn, table);
+    try (Statement stmt = conn.createStatement()) {
+      String quoteString = getIdentifierQuoteString(conn);
+      ResultSet rs = stmt.executeQuery("SELECT * FROM " + quoteString + table + quoteString + " LIMIT 1");
+      ResultSetMetaData rsmd = rs.getMetaData();
+      for (int i = 1; i < rsmd.getColumnCount(); i++) {
+        if (rsmd.isAutoIncrement(i)) {
+          result = rsmd.getColumnName(i);
+          matches++;
         }
-
-        return false;
+      }
     }
+    return (matches == 1 ? result : null);
+  }
 
-    /**
-     * Get the string used for quoting identifiers in this database's SQL dialect.
-     *
-     * @param connection the database connection
-     * @return the quote string
-     * @throws SQLException
-     */
-    public static String getIdentifierQuoteString(Connection connection) throws SQLException {
-        String quoteString = connection.getMetaData().getIdentifierQuoteString();
-        quoteString = quoteString == null ? "" : quoteString;
-        return quoteString;
-    }
-
-    /**
-     * Quote the given string.
-     *
-     * @param orig  the string to quote
-     * @param quote the quote character
-     * @return the quoted string
-     */
-    public static String quoteString(String orig, String quote) {
-        return quote + orig + quote;
-    }
-
-    /**
-     * Return current time at the database
-     *
-     * @param conn
-     * @param cal
-     * @return
-     */
-    public static Timestamp getCurrentTimeOnDB(Connection conn, Calendar cal) throws SQLException, ConnectException {
-        String query;
-
-        // This is ugly, but to run a function, everyone does 'select function()'
-        // except Oracle that does 'select function() from dual'
-        // and Derby uses either the dummy table SYSIBM.SYSDUMMY1  or values expression (I chose to use values)
-        String dbProduct = conn.getMetaData().getDatabaseProductName();
-        if ("Oracle".equals(dbProduct))
-            query = "select CURRENT_TIMESTAMP from dual";
-        else if ("Apache Derby".equals(dbProduct))
-            query = "values(CURRENT_TIMESTAMP)";
-        else
-            query = "select CURRENT_TIMESTAMP;";
-
-        try (Statement stmt = conn.createStatement()) {
-            log.debug("executing query " + query + " to get current time from database");
-            ResultSet rs = stmt.executeQuery(query);
-            if (rs.next())
-                return rs.getTimestamp(1, cal);
-            else
-                throw new ConnectException("Unable to get current time from DB using query " + query + " on database " + dbProduct);
-        } catch (SQLException e) {
-            log.error("Failed to get current time from DB using query " + query + " on database " + dbProduct, e);
-            throw e;
+  public static boolean isColumnNullable(Connection conn, String schemaPattern, String table, String column)
+      throws SQLException {
+    try (ResultSet rs = conn.getMetaData().getColumns(null, schemaPattern, table, column)) {
+      if (rs.getMetaData().getColumnCount() > GET_COLUMNS_IS_NULLABLE) {
+        // Should only be one match
+        if (!rs.next()) {
+          return false;
         }
+        return rs.getString(GET_COLUMNS_IS_NULLABLE).equals("YES");
+      }
     }
 
-    public static byte[] getRowVersionFromMsSql(Connection conn) throws SQLException, ConnectException {
-        String query = "SELECT @@DBTS;";
+    return false;
+  }
 
-        try (Statement stmt = conn.createStatement()) {
-            log.debug("executing query " + query + " to get current row_version from database");
-            ResultSet rs = stmt.executeQuery(query);
-            if (rs.next())
-                return rs.getBytes(1);
-            else
-                throw new ConnectException("Unable to get current row_version from DB using query " + query + " on database Ms Sql");
-        } catch (SQLException e) {
-            log.error("Failed to get current row_version from DB using query " + query + " on database Ms Sql", e);
-            throw e;
-        }
+  /**
+   * Get the string used for quoting identifiers in this database's SQL dialect.
+   *
+   * @param connection the database connection
+   * @return the quote string
+   * @throws SQLException
+   */
+  public static String getIdentifierQuoteString(Connection connection) throws SQLException {
+    String quoteString = connection.getMetaData().getIdentifierQuoteString();
+    quoteString = quoteString == null ? "" : quoteString;
+    return quoteString;
+  }
+
+  /**
+   * Quote the given string.
+   *
+   * @param orig  the string to quote
+   * @param quote the quote character
+   * @return the quoted string
+   */
+  public static String quoteString(String orig, String quote) {
+    return quote + orig + quote;
+  }
+
+  /**
+   * Return current time at the database
+   *
+   * @param conn
+   * @param cal
+   * @return
+   */
+  public static Timestamp getCurrentTimeOnDB(Connection conn, Calendar cal) throws SQLException, ConnectException {
+    String query;
+
+    // This is ugly, but to run a function, everyone does 'select function()'
+    // except Oracle that does 'select function() from dual'
+    // and Derby uses either the dummy table SYSIBM.SYSDUMMY1  or values expression (I chose to use values)
+    String dbProduct = conn.getMetaData().getDatabaseProductName();
+    if ("Oracle".equals(dbProduct))
+      query = "select CURRENT_TIMESTAMP from dual";
+    else if ("Apache Derby".equals(dbProduct))
+      query = "values(CURRENT_TIMESTAMP)";
+    else
+      query = "select CURRENT_TIMESTAMP;";
+
+    try (Statement stmt = conn.createStatement()) {
+      log.debug("executing query " + query + " to get current time from database");
+      ResultSet rs = stmt.executeQuery(query);
+      if (rs.next())
+        return rs.getTimestamp(1, cal);
+      else
+        throw new ConnectException("Unable to get current time from DB using query " + query + " on database " + dbProduct);
+    } catch (SQLException e) {
+      log.error("Failed to get current time from DB using query " + query + " on database " + dbProduct, e);
+      throw e;
     }
+  }
+
+  public static byte[] getRowVersionFromMsSql(Connection conn) throws SQLException, ConnectException {
+    String query = "SELECT @@DBTS;";
+
+    try (Statement stmt = conn.createStatement()) {
+      log.debug("executing query " + query + " to get current row_version from database");
+      ResultSet rs = stmt.executeQuery(query);
+      if (rs.next())
+        return rs.getBytes(1);
+      else
+        throw new ConnectException("Unable to get current row_version from DB using query " + query + " on database Ms Sql");
+    } catch (SQLException e) {
+      log.error("Failed to get current row_version from DB using query " + query + " on database Ms Sql", e);
+      throw e;
+    }
+  }
 }
 

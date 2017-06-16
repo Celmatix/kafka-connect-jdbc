@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Confluent Inc.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -63,7 +63,7 @@ public class DataConverter {
     for (int col = 1; col <= metadata.getColumnCount(); col++) {
       try {
         convertFieldValue(resultSet, col, metadata.getColumnType(col), struct,
-                          metadata.getColumnLabel(col), mapNumerics, dbProduct, resultSetMetaData);
+            metadata.getColumnLabel(col), mapNumerics, dbProduct, resultSetMetaData);
       } catch (IOException e) {
         log.warn("Ignoring record because processing failed:", e);
       } catch (SQLException e) {
@@ -208,16 +208,16 @@ public class DataConverter {
             Schema schema;
             if (precision > 9) {
               schema = (optional) ? Schema.OPTIONAL_INT64_SCHEMA :
-                      Schema.INT64_SCHEMA;
+                  Schema.INT64_SCHEMA;
             } else if (precision > 4) {
               schema = (optional) ? Schema.OPTIONAL_INT32_SCHEMA :
-                      Schema.INT32_SCHEMA;
+                  Schema.INT32_SCHEMA;
             } else if (precision > 2) {
               schema = (optional) ? Schema.OPTIONAL_INT16_SCHEMA :
-                      Schema.INT16_SCHEMA;
+                  Schema.INT16_SCHEMA;
             } else {
               schema = (optional) ? Schema.OPTIONAL_INT8_SCHEMA :
-                      Schema.INT8_SCHEMA;
+                  Schema.INT8_SCHEMA;
             }
             builder.field(fieldName, schema);
             break;
@@ -269,11 +269,11 @@ public class DataConverter {
             builder.field(fieldName, Schema.OPTIONAL_BYTES_SCHEMA);
           }
         } else {
-            if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
-                builder.field(fieldName, Schema.INT64_SCHEMA);
-            } else {
-                builder.field(fieldName, Schema.BYTES_SCHEMA);
-            }
+          if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+            builder.field(fieldName, Schema.INT64_SCHEMA);
+          } else {
+            builder.field(fieldName, Schema.BYTES_SCHEMA);
+          }
         }
         break;
       }
@@ -452,7 +452,7 @@ public class DataConverter {
         if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
           colValue = new BigInteger(resultSet.getBytes(col)).longValue();
         } else {
-            colValue = resultSet.getBytes(col);
+          colValue = resultSet.getBytes(col);
         }
         break;
       }
