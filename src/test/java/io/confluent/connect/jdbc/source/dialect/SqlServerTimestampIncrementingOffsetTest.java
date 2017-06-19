@@ -3,15 +3,12 @@ package io.confluent.connect.jdbc.source.dialect;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.math.BigInteger;
-
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class SqlServerTimestampIncrementingOffsetTest {
-    private final byte[] ts = new byte[] {1,6,3};
-    private final Long tsL = (Long)new BigInteger(ts).longValue();
+    private final Long ts = 163L;
     private final long id = 1000L;
     private final SqlServerTimestampIncrementingOffset unset = new SqlServerTimestampIncrementingOffset(null, null);
     private final SqlServerTimestampIncrementingOffset tsOnly = new SqlServerTimestampIncrementingOffset(ts, null);
@@ -51,9 +48,9 @@ public class SqlServerTimestampIncrementingOffsetTest {
         assertNotNull(unset.getTimestampOffset());
         Long zero = 0L;
         assertEquals(zero, unset.getTimestampOffset());
-        assertEquals(tsL, tsOnly.getTimestampOffset());
+        assertEquals(ts, tsOnly.getTimestampOffset());
         assertEquals(zero, incOnly.getTimestampOffset());
-        assertEquals(tsL, tsInc.getTimestampOffset());
+        assertEquals(ts, tsInc.getTimestampOffset());
     }
 
     @Test

@@ -75,7 +75,7 @@ public abstract class DbDialectTimestampIncrementingOffset {
       case "microsoft:sqlserver":
       case "sqlserver":
       case "jtds:sqlserver":
-        return new SqlServerTimestampIncrementingOffset((byte[]) timestampOffset, incrementingOffset);
+        return new SqlServerTimestampIncrementingOffset((Long) timestampOffset, incrementingOffset);
       default:
         return new GenericTimestampIncrementingOffset((Timestamp) timestampOffset, incrementingOffset);
     }

@@ -168,7 +168,6 @@ public class TimestampIncrementingTableQuerier extends TableQuerier {
   @Override
   protected ResultSet executeQuery() throws SQLException {
     if (incrementingColumn != null && timestampColumn != null) {
-      // todo we need to modify this for sql server as well
       stmt = TimestampStatementAdapter.getTimeStampAndIncrementingOffsetPreparedStatement(offset, timestampDelay, stmt);
     } else if (incrementingColumn != null) {
       Long incOffset = offset.getIncrementingOffset();

@@ -16,8 +16,6 @@
 
 package io.confluent.connect.jdbc.source.dialect;
 
-import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,7 +40,7 @@ public class SqlServerTimestampIncrementingOffset extends DbDialectTimestampIncr
   private static final String TIMESTAMP_NANOS_FIELD = "timestamp_nanos";
 
   private final Long incrementingOffset;
-  private final byte[] timestampOffset;
+  private final Long timestampOffset;
 
   /**
    * @param timestampOffset    the timestamp offset.
@@ -50,7 +48,7 @@ public class SqlServerTimestampIncrementingOffset extends DbDialectTimestampIncr
    * @param incrementingOffset the incrementing offset.
    *                           If null, {@link #getIncrementingOffset()} will return -1.
    */
-  public SqlServerTimestampIncrementingOffset(byte[] timestampOffset, Long incrementingOffset) {
+  public SqlServerTimestampIncrementingOffset(Long timestampOffset, Long incrementingOffset) {
     this.timestampOffset = timestampOffset;
     this.incrementingOffset = incrementingOffset;
   }
@@ -63,7 +61,7 @@ public class SqlServerTimestampIncrementingOffset extends DbDialectTimestampIncr
 
   @Override
   public Long getTimestampOffset() {
-    return timestampOffset == null ? 0L : new BigInteger(timestampOffset).longValue();
+    return timestampOffset == null ? 0L : timestampOffset;
   }
 
   @Override
@@ -73,7 +71,7 @@ public class SqlServerTimestampIncrementingOffset extends DbDialectTimestampIncr
       map.put(INCREMENTING_FIELD, incrementingOffset);
     }
     if (timestampOffset != null) {
-      map.put(TIMESTAMP_FIELD, new BigInteger(timestampOffset).longValue());
+      map.put(TIMESTAMP_FIELD, timestampOffset);
       map.put(TIMESTAMP_NANOS_FIELD, null);
     }
     return map;
@@ -85,18 +83,7 @@ public class SqlServerTimestampIncrementingOffset extends DbDialectTimestampIncr
     }
 
     Long incr = (Long) map.get(INCREMENTING_FIELD);
-
-    byte[] tf = null;
-
-    if (map.get(TIMESTAMP_FIELD) instanceof byte[]) {
-      tf = (byte[]) map.get(TIMESTAMP_FIELD);
-    } else if (map.get(TIMESTAMP_FIELD) instanceof Long) {
-      tf = BigInteger.valueOf((Long) map.get(TIMESTAMP_FIELD)).toByteArray();
-    } else if (map.get(TIMESTAMP_FIELD) == null) {
-      tf = null;
-    } else {
-      // todo how do we proceed if it is not in one of the allowed types
-    }
+    Long tf = (Long) map.get(TIMESTAMP_FIELD);
 
     return new SqlServerTimestampIncrementingOffset(tf, incr);
   }
@@ -115,7 +102,7 @@ public class SqlServerTimestampIncrementingOffset extends DbDialectTimestampIncr
     if (incrementingOffset != null ? !incrementingOffset.equals(that.incrementingOffset) : that.incrementingOffset != null) {
       return false;
     }
-    return timestampOffset != null ? Arrays.equals(timestampOffset, that.timestampOffset) : that.timestampOffset == null;
+    return timestampOffset != null ? timestampOffset.equals(that.timestampOffset) : that.timestampOffset == null;
 
   }
 

@@ -84,7 +84,7 @@ public class TimestampStatementAdapter {
 
   public static Object extractTimeStampRecordAssertion(DbDialectTimestampIncrementingOffset offset, Struct record, String timestampColumn) {
     if (offset instanceof SqlServerTimestampIncrementingOffset) {
-      long extractedTimestamp = new BigInteger((byte[]) record.get(timestampColumn)).longValue();
+      long extractedTimestamp = (long) record.get(timestampColumn);
       Long timestampOffset = (Long) offset.getTimestampOffset();
 
       assert timestampOffset != null && timestampOffset.compareTo(extractedTimestamp) <= 0;
