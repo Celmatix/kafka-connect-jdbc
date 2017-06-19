@@ -263,13 +263,13 @@ public class DataConverter {
       case Types.VARBINARY:
       case Types.LONGVARBINARY: {
         if (optional) {
-          if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+          if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion")) && dbProduct.equals("Microsoft SQL Server")) {
             builder.field(fieldName, Schema.OPTIONAL_INT64_SCHEMA);
           } else {
             builder.field(fieldName, Schema.OPTIONAL_BYTES_SCHEMA);
           }
         } else {
-          if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+          if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion")) && dbProduct.equals("Microsoft SQL Server")) {
             builder.field(fieldName, Schema.INT64_SCHEMA);
           } else {
             builder.field(fieldName, Schema.BYTES_SCHEMA);
@@ -449,7 +449,7 @@ public class DataConverter {
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY: {
-        if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion") && dbProduct.equals("Microsoft SQL Server"))) {
+        if ((columnTypeName.equals("timestamp") || columnTypeName.equals("rowversion")) && dbProduct.equals("Microsoft SQL Server")) {
           colValue = new BigInteger(resultSet.getBytes(col)).longValue();
         } else {
           colValue = resultSet.getBytes(col);
