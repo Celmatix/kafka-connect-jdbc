@@ -181,7 +181,6 @@ public class TimestampIncrementingTableQuerier extends TableQuerier {
 
   @Override
   public SourceRecord extractRecord() throws SQLException {
-    // MZ - todo make a change
     final Struct record = DataConverter.convertRecord(schema, resultSet, mapNumerics, dbProduct, resultSetMetaData);
     offset = extractOffset(schema, record);
     // TODO: Key?
